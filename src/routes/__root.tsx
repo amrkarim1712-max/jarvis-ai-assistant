@@ -80,11 +80,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "J.A.R.V.I.S. — Just A Rather Very Intelligent System" },
       { name: "description", content: "Your personal AI assistant. Speak, ask, search — Jarvis responds." },
       { name: "author", content: "Stark Industries" },
-      { property: "og:title", content: "J.A.R.V.I.S." },
-      { property: "og:description", content: "Your personal AI assistant with voice and live web search." },
+      { property: "og:title", content: "J.A.R.V.I.S. — Just A Rather Very Intelligent System" },
+      { property: "og:description", content: "Your personal AI assistant. Speak, ask, search — Jarvis responds." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
 
+      { name: "twitter:title", content: "J.A.R.V.I.S. — Just A Rather Very Intelligent System" },
+      { name: "twitter:description", content: "Your personal AI assistant. Speak, ask, search — Jarvis responds." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/1138f852-2a44-4cc2-b637-3de68a437bff/id-preview-0eb2a8e6--c83da59a-0787-40d5-a759-dd8cef2b276d.lovable.app-1783948798093.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/1138f852-2a44-4cc2-b637-3de68a437bff/id-preview-0eb2a8e6--c83da59a-0787-40d5-a759-dd8cef2b276d.lovable.app-1783948798093.png" },
     ],
     links: [
       {
