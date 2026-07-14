@@ -620,20 +620,20 @@ function Jarvis() {
               />
             </button>
 
-            {/* Audio bars around center */}
-            <div className="pointer-events-none absolute inset-0 flex items-end justify-center gap-[3px] pb-[calc(50%-24px)]">
+            {/* Audio bars — arc along the bottom rim, outside the reactor */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-2 flex h-10 items-end justify-center gap-[3px] px-16">
               {levels.map((v, i) => (
                 <span
                   key={i}
                   className="w-[3px] rounded-full bg-jarvis shadow-[0_0_6px_currentColor]"
-                  style={{ height: `${8 + v * 60}px`, opacity: 0.5 + v * 0.5 }}
+                  style={{ height: `${6 + v * 34}px`, opacity: 0.5 + v * 0.5 }}
                 />
               ))}
             </div>
 
-            {/* Center label */}
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="translate-y-16 text-center font-mono text-[10px] uppercase tracking-[0.4em] text-jarvis/80 text-glow">
+            {/* Center label — below the reactor, outside the image */}
+            <div className="pointer-events-none absolute inset-x-0 -bottom-6 flex items-center justify-center">
+              <div className="text-center font-mono text-[10px] uppercase tracking-[0.4em] text-jarvis/80 text-glow">
                 {listening ? "◉ LISTENING" : speaking ? "◈ SPEAKING" : thinking ? "◇ PROCESSING" : wakeMode ? (wakeHeard ? "◉ WAKE HEARD" : "◇ WAKE ARMED") : "◇ TAP TO SPEAK"}
               </div>
             </div>
