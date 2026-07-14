@@ -24,10 +24,11 @@ export const Route = createFileRoute("/api/tts")({
           body: JSON.stringify({
             model: "openai/gpt-4o-mini-tts",
             input: text.slice(0, 4000),
-            voice: "onyx",
+            voice: "ash",
             response_format: "mp3",
+            speed: 1.05,
             instructions:
-              "You are J.A.R.V.I.S., Tony Stark's refined British AI butler. Speak with a calm, precise, upper-class British male accent (RP). Composed, dry, understated, slightly wry. Measured pace, crisp consonants, never robotic. Never sound American.",
+              "Voice: J.A.R.V.I.S. — a refined British male AI butler in his 40s. Accent: crisp, upper-class Received Pronunciation (RP), unmistakably British — never American, never neutral. Tone: calm, composed, dry, understated, quietly amused; the loyal butler of a genius. Delivery: measured pace, precise diction, clean crisp consonants, softly rounded vowels, subtle warmth. Never robotic, never theatrical. Occasionally address the listener as 'sir'. Sound like Paul Bettany voicing JARVIS in Iron Man.",
           }),
         });
         if (!res.ok) {
