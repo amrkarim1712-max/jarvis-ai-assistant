@@ -166,25 +166,37 @@ function Jarvis() {
   }, []);
 
   const startCrackle = useCallback((ctx: AudioContext, dest: AudioNode) => {
-    // Generate ~2s of pink-ish noise loop
+    // Sparse, quiet radio-bed crackle
     const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
     const ch = buf.getChannelData(0);
     for (let i = 0; i < ch.length; i++) {
-      // Sparse crackle: mostly silent, occasional pops
       const r = Math.random();
-      ch[i] = r > 0.995 ? (Math.random() * 2 - 1) * 0.8 : (Math.random() * 2 - 1) * 0.04;
+      ch[i] = r > 0.9985 ? (Math.random() * 2 - 1) * 0.55 : (Math.random() * 2 - 1) * 0.012;
     }
     const src = ctx.createBufferSource();
     src.buffer = buf;
     src.loop = true;
     const hp = ctx.createBiquadFilter();
     hp.type = "highpass";
-    hp.frequency.value = 1200;
+    hp.frequency.value = 1500;
     const g = ctx.createGain();
-    g.gain.value = 0.06;
+    g.gain.value = 0.025;
     src.connect(hp).connect(g).connect(dest);
     src.start();
-    return () => { try { src.stop(); } catch { /* noop */ } };
+    return () => { try { src.stop(); src.disconnect(); hp.disconnect(); g.disconnect(); } catch { /* noop */ } };
+  }, []);
+
+  // Small-room impulse response for subtle "helmet" ambience
+  const buildImpulse = useCallback((ctx: AudioContext, seconds = 0.35, decay = 3) => {
+    const len = Math.floor(ctx.sampleRate * seconds);
+    const impulse = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let c = 0; c < 2; c++) {
+      const chan = impulse.getChannelData(c);
+      for (let i = 0; i < len; i++) {
+        chan[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+      }
+    }
+    return impulse;
   }, []);
 
   const speak = useCallback(
@@ -193,7 +205,12 @@ function Jarvis() {
       try {
         stopVisualizer();
         crackleStopRef.current?.();
-        audioRef.current?.pause();
+        crackleStopRef.current = null;
+        if (audioRef.current) {
+          try { audioRef.current.pause(); } catch { /* noop */ }
+          audioRef.current.src = "";
+          audioRef.current = null;
+        }
         const res = await fetch("/api/tts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -203,7 +220,6 @@ function Jarvis() {
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const audio = new Audio(url);
-        audio.crossOrigin = "anonymous";
         audioRef.current = audio;
 
         if (!audioCtxRef.current) {
@@ -217,50 +233,67 @@ function Jarvis() {
 
         let tail: AudioNode = src;
         if (radioFx) {
-          // Bandpass (comms radio): highpass 500Hz + lowpass 3400Hz
+          // Wider comms band: keep body, trim rumble + hiss
           const hp = ctx.createBiquadFilter();
           hp.type = "highpass";
-          hp.frequency.value = 500;
+          hp.frequency.value = 180;
           hp.Q.value = 0.7;
           const lp = ctx.createBiquadFilter();
           lp.type = "lowpass";
-          lp.frequency.value = 3400;
+          lp.frequency.value = 6200;
           lp.Q.value = 0.7;
-          // Slight peaking boost around 2kHz for intelligibility
+          // Low-shelf for warmth/body
+          const ls = ctx.createBiquadFilter();
+          ls.type = "lowshelf";
+          ls.frequency.value = 320;
+          ls.gain.value = 3;
+          // Presence peak for intelligibility
           const pk = ctx.createBiquadFilter();
           pk.type = "peaking";
-          pk.frequency.value = 2000;
-          pk.Q.value = 1.2;
-          pk.gain.value = 4;
-          // Waveshaper for subtle saturation
+          pk.frequency.value = 2600;
+          pk.Q.value = 1.1;
+          pk.gain.value = 3.5;
+          // Gentle saturation
           const shaper = ctx.createWaveShaper();
-          const curve = new Float32Array(1024);
-          for (let i = 0; i < 1024; i++) {
-            const x = (i / 1024) * 2 - 1;
-            curve[i] = ((3 + 8) * x) / (Math.PI + 8 * Math.abs(x)); // soft clip
+          const curve = new Float32Array(2048);
+          const k = 2.2;
+          for (let i = 0; i < 2048; i++) {
+            const x = (i / 2048) * 2 - 1;
+            curve[i] = ((1 + k) * x) / (1 + k * Math.abs(x));
           }
           shaper.curve = curve;
           shaper.oversample = "4x";
           // Compressor
           const comp = ctx.createDynamicsCompressor();
-          comp.threshold.value = -22;
-          comp.knee.value = 12;
-          comp.ratio.value = 6;
-          comp.attack.value = 0.003;
-          comp.release.value = 0.15;
+          comp.threshold.value = -20;
+          comp.knee.value = 14;
+          comp.ratio.value = 4;
+          comp.attack.value = 0.004;
+          comp.release.value = 0.18;
+          // Subtle reverb (parallel wet)
+          const convolver = ctx.createConvolver();
+          convolver.buffer = buildImpulse(ctx);
+          const wet = ctx.createGain();
+          wet.gain.value = 0.12;
+          const dry = ctx.createGain();
+          dry.gain.value = 1.0;
           // Makeup gain
-          const gain = ctx.createGain();
-          gain.gain.value = 1.35;
+          const outGain = ctx.createGain();
+          outGain.gain.value = 1.15;
 
           src.connect(hp);
           hp.connect(lp);
-          lp.connect(pk);
+          lp.connect(ls);
+          ls.connect(pk);
           pk.connect(shaper);
           shaper.connect(comp);
-          comp.connect(gain);
-          tail = gain;
+          comp.connect(dry);
+          comp.connect(convolver);
+          convolver.connect(wet);
+          dry.connect(outGain);
+          wet.connect(outGain);
+          tail = outGain;
 
-          // Crackle bed
           crackleStopRef.current = startCrackle(ctx, ctx.destination);
         }
 
@@ -281,9 +314,11 @@ function Jarvis() {
       } catch (e) {
         console.error("TTS failed", e);
         setSpeaking(false);
+        crackleStopRef.current?.();
+        crackleStopRef.current = null;
       }
     },
-    [voiceOn, radioFx, startAudioVisualizer, stopVisualizer, startCrackle],
+    [voiceOn, radioFx, startAudioVisualizer, stopVisualizer, startCrackle, buildImpulse],
   );
 
   const send = useCallback(
@@ -421,7 +456,13 @@ function Jarvis() {
 
   const toggleVoice = () => {
     setVoiceOn((v) => {
-      if (v) audioRef.current?.pause();
+      if (v) {
+        try { audioRef.current?.pause(); } catch { /* noop */ }
+        crackleStopRef.current?.();
+        crackleStopRef.current = null;
+        stopVisualizer();
+        setSpeaking(false);
+      }
       return !v;
     });
   };
@@ -430,7 +471,14 @@ function Jarvis() {
   const active = listening || thinking || speaking;
 
   const onReactorClick = () => {
-    if (speaking) { audioRef.current?.pause(); return; }
+    if (speaking) {
+      try { audioRef.current?.pause(); } catch { /* noop */ }
+      crackleStopRef.current?.();
+      crackleStopRef.current = null;
+      setSpeaking(false);
+      return;
+    }
+    if (thinking) return;
     if (listening) { recRef.current?.stop(); return; }
     startCommandListen();
   };
