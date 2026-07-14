@@ -620,8 +620,8 @@ function Jarvis() {
               />
             </button>
 
-            {/* Audio bars — arc along the bottom rim, outside the reactor */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-2 flex h-10 items-end justify-center gap-[3px] px-16">
+            {/* Audio bars — sit BELOW the reactor circle, never overlapping the image */}
+            <div className="pointer-events-none absolute inset-x-0 -bottom-14 flex h-10 items-end justify-center gap-[3px]">
               {levels.map((v, i) => (
                 <span
                   key={i}
@@ -631,8 +631,8 @@ function Jarvis() {
               ))}
             </div>
 
-            {/* Center label — below the reactor, outside the image */}
-            <div className="pointer-events-none absolute inset-x-0 -bottom-6 flex items-center justify-center">
+            {/* Center label — below the audio bars */}
+            <div className="pointer-events-none absolute inset-x-0 -bottom-24 flex items-center justify-center">
               <div className="text-center font-mono text-[10px] uppercase tracking-[0.4em] text-jarvis/80 text-glow">
                 {listening ? "◉ LISTENING" : speaking ? "◈ SPEAKING" : thinking ? "◇ PROCESSING" : wakeMode ? (wakeHeard ? "◉ WAKE HEARD" : "◇ WAKE ARMED") : "◇ TAP TO SPEAK"}
               </div>
