@@ -456,7 +456,13 @@ function Jarvis() {
 
   const toggleVoice = () => {
     setVoiceOn((v) => {
-      if (v) audioRef.current?.pause();
+      if (v) {
+        try { audioRef.current?.pause(); } catch { /* noop */ }
+        crackleStopRef.current?.();
+        crackleStopRef.current = null;
+        stopVisualizer();
+        setSpeaking(false);
+      }
       return !v;
     });
   };
@@ -465,7 +471,14 @@ function Jarvis() {
   const active = listening || thinking || speaking;
 
   const onReactorClick = () => {
-    if (speaking) { audioRef.current?.pause(); return; }
+    if (speaking) {
+      try { audioRef.current?.pause(); } catch { /* noop */ }
+      crackleStopRef.current?.();
+      crackleStopRef.current = null;
+      setSpeaking(false);
+      return;
+    }
+    if (thinking) return;
     if (listening) { recRef.current?.stop(); return; }
     startCommandListen();
   };
